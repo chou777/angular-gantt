@@ -6,9 +6,7 @@
             require: '^gantt',
             scope: {
                 enabled: '=?',
-                dateFormat: '=?',
-                content: '=?',
-                delay: '=?'
+                menuOptions: '=?'
             },
             link: function(scope, element, attrs, ganttCtrl) {
                 var api = ganttCtrl.gantt.api;
@@ -23,36 +21,19 @@
                 if (scope.enabled === undefined) {
                     scope.enabled = true;
                 }
-                if (scope.dateFormat === undefined) {
-                    scope.dateFormat = 'MMM DD, HH:mm';
-                }
-                if (scope.delay === undefined) {
-                    scope.delay = 500;
-                }
-                if (scope.content === undefined) {
-                    scope.content = '{{task.model.name}}</br>'+
-                                    '<small>'+
-                                    '{{task.isMilestone() === true && getFromLabel() || getFromLabel() + \' - \' + getToLabel()}}'+
-                                    '</small>';
-                }
 
                 scope.api = api;
 
                 api.directives.on.new(scope, function(directiveName, taskScope, taskElement) {
                     if (directiveName === 'ganttTask') {
-                        var contextmenuScope = taskScope.$new();
 
+                        var contextmenuScope = taskScope.$new();
                         contextmenuScope.pluginScope = scope;
+
                         var ifElement = $document[0].createElement('div');
                         angular.element(ifElement).attr('data-ng-if', 'pluginScope.enabled');
 
-                        var contextmenuElement = $document[0].createElement('gantt-contextmenu');
-                        if (attrs.templateUrl !== undefined) {
-                            angular.element(contextmenuElement).attr('data-template-url', attrs.templateUrl);
-                        }
-                        if (attrs.template !== undefined) {
-                            angular.element(contextmenuElement).attr('data-template', attrs.template);
-                        }
+                        var contextmenuElement = $document[0].createElement('gantt-context-menu');
 
                         angular.element(ifElement).append(contextmenuElement);
                         taskElement.append($compile(ifElement)(contextmenuScope));
@@ -62,4 +43,3 @@
         };
     }]);
 }());
-

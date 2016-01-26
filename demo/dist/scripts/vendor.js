@@ -44715,7 +44715,6 @@ angular.module('gantt.templates', []).run(['$templateCache', function($templateC
 }]);
 
 //# sourceMappingURL=angular-gantt.js.map
-
 /*
 Project: angular-gantt v1.2.11 - Gantt chart component for AngularJS
 Authors: Marco Schweighauser, Rémi Alvergnat
@@ -44771,6 +44770,73 @@ Github: https://github.com/angular-gantt/angular-gantt.git
                     }
                     if (model.lct !== undefined && !moment.isMoment(model.lct)) {
                         model.lct = moment(model.lct);  //Latest Completion Time
+                    }
+                });
+            }
+        };
+    }]);
+}());
+
+
+(function(){
+    'use strict';
+    angular.module('gantt.contextmenus', ['gantt', 'gantt.contextmenus.templates']).directive('ganttContextMenus', ['$compile', '$document', function($compile, $document) {
+        return {
+            restrict: 'E',
+            require: '^gantt',
+            scope: {
+                enabled: '=?',
+                dateFormat: '=?',
+                content: '=?',
+                delay: '=?'
+            },
+            link: function(scope, element, attrs, ganttCtrl) {
+                var api = ganttCtrl.gantt.api;
+
+                // Load options from global options attribute.
+                if (scope.options && typeof(scope.options.contextmenus) === 'object') {
+                    for (var option in scope.options.contextmenus) {
+                        scope[option] = scope.options[option];
+                    }
+                }
+
+                if (scope.enabled === undefined) {
+                    scope.enabled = true;
+                }
+                if (scope.dateFormat === undefined) {
+                    scope.dateFormat = 'MMM DD, HH:mm';
+                }
+                if (scope.delay === undefined) {
+                    scope.delay = 500;
+                }
+                if (scope.content === undefined) {
+                    scope.content = '{{task.model.name}}</br>'+
+                                    '<small>'+
+                                    '{{task.isMilestone() === true && getFromLabel() || getFromLabel() + \' - \' + getToLabel()}}'+
+                                    '</small>';
+                }
+
+                scope.api = api;
+
+                api.directives.on.new(scope, function(directiveName, taskScope, taskElement) {
+                    if (directiveName === 'ganttTask') {
+
+                        var contextmenuScope = taskScope.$new();
+
+                        contextmenuScope.pluginScope = scope;
+                        var ifElement = $document[0].createElement('div');
+                        angular.element(ifElement).attr('data-ng-if', 'pluginScope.enabled');
+
+                        var contextmenuElement = $document[0].createElement('gantt-context-menu');
+                        if (attrs.templateUrl !== undefined) {
+                            angular.element(contextmenuElement).attr('data-template-url', attrs.templateUrl);
+                        }
+                        if (attrs.template !== undefined) {
+                            angular.element(contextmenuElement).attr('data-template', attrs.template);
+                        }
+
+                        angular.element(ifElement).append(contextmenuElement);
+                        taskElement.append($compile(ifElement)(contextmenuScope));
                     }
                 });
             }
@@ -46086,6 +46152,7 @@ Github: https://github.com/angular-gantt/angular-gantt.git
 
                 api.directives.on.new(scope, function(directiveName, taskScope, taskElement) {
                     if (directiveName === 'ganttTask') {
+                        console.log('tooltip');
                         var tooltipScope = taskScope.$new();
 
                         tooltipScope.pluginScope = scope;
@@ -46233,6 +46300,222 @@ Github: https://github.com/angular-gantt/angular-gantt.git
                 $scope.task.rowsManager.gantt.api.directives.raise.new('ganttBounds', $scope, $element);
                 $scope.$on('$destroy', function() {
                     $scope.task.rowsManager.gantt.api.directives.raise.destroy('ganttBounds', $scope, $element);
+                });
+            }]
+        };
+    }]);
+}());
+
+
+(function() {
+    'use strict';
+    angular.module('gantt.contextmenus').directive('ganttContextMenu', ['$log','$timeout', '$compile', '$document', '$templateCache', 'ganttDebounce', 'ganttSmartEvent', function($log, $timeout, $compile, $document, $templateCache, debounce, smartEvent) {
+        // This contextmenu displays more information about a task
+
+        return {
+            restrict: 'E',
+            templateUrl: function(tElement, tAttrs) {
+                var templateUrl;
+                if (tAttrs.templateUrl === undefined) {
+                    templateUrl = 'plugins/contextmenus/contextmenu.tmpl.html';
+                } else {
+                    templateUrl = tAttrs.templateUrl;
+                }
+                if (tAttrs.template !== undefined) {
+                    $templateCache.put(templateUrl, tAttrs.template);
+                }
+                return templateUrl;
+            },
+            scope: true,
+            replace: true,
+            controller: ['$scope', '$element', 'ganttUtils', function($scope, $element, utils) {
+                var bodyElement = angular.element($document[0].body);
+                var parentElement = $scope.task.$element;
+                var showContextMenuPromise;
+                var visible = false;
+                var mouseEnterX;
+
+                $scope.getFromLabel = function() {
+                    var taskContextMenus = $scope.task.model.contextmenus;
+                    var rowContextMenus = $scope.task.row.model.contextmenus;
+
+                    if (typeof(taskContextMenus) === 'boolean') {
+                        taskContextMenus = {enabled: taskContextMenus};
+                    }
+
+                    if (typeof(rowContextMenus) === 'boolean') {
+                        rowContextMenus = {enabled: rowContextMenus};
+                    }
+
+                    var dateFormat = utils.firstProperty([taskContextMenus, rowContextMenus], 'dateFormat', $scope.pluginScope.dateFormat);
+                    return $scope.task.model.from.format(dateFormat);
+                };
+
+                $scope.getToLabel = function() {
+                    var taskContextMenus = $scope.task.model.contextmenus;
+                    var rowContextMenus = $scope.task.row.model.contextmenus;
+
+                    if (typeof(taskContextMenus) === 'boolean') {
+                        taskContextMenus = {enabled: taskContextMenus};
+                    }
+
+                    if (typeof(rowContextMenus) === 'boolean') {
+                        rowContextMenus = {enabled: rowContextMenus};
+                    }
+
+                    var dateFormat = utils.firstProperty([taskContextMenus, rowContextMenus], 'dateFormat', $scope.pluginScope.dateFormat);
+                    return $scope.task.model.to.format(dateFormat);
+                };
+
+                var mouseMoveHandler = smartEvent($scope, bodyElement, 'mousemove', debounce(function(e) {
+                    if (!visible) {
+                        mouseEnterX = e.clientX;
+                        displayContextMenu(true, false);
+                    } else {
+                        // check if mouse goes outside the parent
+                        if(
+                            !$scope.taskRect ||
+                            e.clientX < $scope.taskRect.left ||
+                            e.clientX > $scope.taskRect.right ||
+                            e.clientY > $scope.taskRect.bottom ||
+                            e.clientY < $scope.taskRect.top
+                        ) {
+                            displayContextMenu(false, false);
+                        }
+
+                        updateContextMenu(e.clientX);
+                    }
+                }, 5, false));
+
+
+                $scope.task.getContentElement().bind('mousemove', function(evt) {
+                    console.log('mousemove');
+                    mouseEnterX = evt.clientX;
+                });
+
+                $scope.task.getContentElement().bind('mouseenter', function(evt) {
+                    console.log('mouseenter');
+
+                    mouseEnterX = evt.clientX;
+                    displayContextMenu(true, true);
+                });
+
+                $scope.task.getContentElement().bind('mouseleave', function() {
+                    console.log('mouseleave');
+                    displayContextMenu(false);
+                });
+
+                if ($scope.pluginScope.api.tasks.on.moveBegin) {
+                    $scope.pluginScope.api.tasks.on.moveBegin($scope, function(task) {
+                        if (task === $scope.task) {
+                            displayContextMenu(true);
+                        }
+                    });
+
+                    $scope.pluginScope.api.tasks.on.moveEnd($scope, function(task) {
+                        if (task === $scope.task) {
+                            displayContextMenu(false);
+                        }
+                    });
+
+                    $scope.pluginScope.api.tasks.on.resizeBegin($scope, function(task) {
+                        if (task === $scope.task) {
+                            displayContextMenu(true);
+                        }
+                    });
+
+                    $scope.pluginScope.api.tasks.on.resizeEnd($scope, function(task) {
+                        if (task === $scope.task) {
+                            displayContextMenu(false);
+                        }
+                    });
+                }
+
+                var displayContextMenu = function(newValue, showDelayed) {
+                    if (showContextMenuPromise) {
+                        $timeout.cancel(showContextMenuPromise);
+                    }
+
+                    var taskContextMenus = $scope.task.model.contextmenus;
+                    var rowContextMenus = $scope.task.row.model.contextmenus;
+
+                    if (typeof(taskContextMenus) === 'boolean') {
+                        taskContextMenus = {enabled: taskContextMenus};
+                    }
+
+                    if (typeof(rowContextMenus) === 'boolean') {
+                        rowContextMenus = {enabled: rowContextMenus};
+                    }
+
+                    var enabled = utils.firstProperty([taskContextMenus, rowContextMenus], 'enabled', $scope.pluginScope.enabled);
+                    if (enabled && !visible && mouseEnterX !== undefined && newValue) {
+                        if (showDelayed) {
+                            showContextMenuPromise = $timeout(function() {
+                                showContextMenu(mouseEnterX);
+                            }, $scope.pluginScope.delay, false);
+                        } else {
+                            showContextMenu(mouseEnterX);
+                        }
+                    } else if (!newValue) {
+                        if (!$scope.task.active) {
+                            hideContextMenu();
+                        }
+                    }
+                };
+
+                var showContextMenu = function(x) {
+                    visible = true;
+                    mouseMoveHandler.bind();
+
+                    $scope.displayed = true;
+
+                    $scope.$evalAsync(function() {
+                        var restoreNgHide;
+                        if ($element.hasClass('ng-hide')) {
+                            $element.removeClass('ng-hide');
+                            restoreNgHide = true;
+                        }
+                        $scope.elementHeight = $element[0].offsetHeight;
+                        if (restoreNgHide) {
+                            $element.addClass('ng-hide');
+                        }
+                        $scope.taskRect = parentElement[0].getBoundingClientRect();
+                        updateContextMenu(x);
+                    });
+                };
+
+                var getViewPortWidth = function() {
+                    var d = $document[0];
+                    return d.documentElement.clientWidth || d.documentElement.getElementById('body')[0].clientWidth;
+                };
+
+                var updateContextMenu = function(x) {
+                    // Check if info is overlapping with view port
+                    if (x + $element[0].offsetWidth > getViewPortWidth()) {
+                        $element.css('left', (x + 20 - $element[0].offsetWidth) + 'px');
+                        $scope.isRightAligned = true;
+                    } else {
+                        $element.css('left', (x - 20) + 'px');
+                        $scope.isRightAligned = false;
+                    }
+                };
+
+                var hideContextMenu = function() {
+                    visible = false;
+                    mouseMoveHandler.unbind();
+                    $scope.$evalAsync(function() {
+                        $scope.displayed = false;
+                    });
+                };
+
+                if ($scope.task.isMoving) {
+                    // Display contextmenu because task has been moved to a new row
+                    displayContextMenu(true, false);
+                }
+
+                $scope.gantt.api.directives.raise.new('ganttContextMenu', $scope, $element);
+                $scope.$on('$destroy', function() {
+                    $scope.gantt.api.directives.raise.destroy('ganttContextMenu', $scope, $element);
                 });
             }]
         };
@@ -47983,6 +48266,20 @@ angular.module('gantt.bounds.templates', []).run(['$templateCache', function($te
         '');
 }]);
 
+angular.module('gantt.contextmenus.templates', []).run(['$templateCache', function($templateCache) {
+    $templateCache.put('plugins/contextmenus/contextmenu.tmpl.html',
+        '<div ng-cloak\n' +
+        '     class="gantt-task-info"\n' +
+        '     ng-show="displayed"\n' +
+        '     ng-class="isRightAligned ? \'gantt-task-infoArrowR\' : \'gantt-task-infoArrow\'"\n' +
+        '     ng-style="{top: taskRect.top + \'px\', marginTop: -elementHeight - 8 + \'px\'}">\n' +
+        '    <div class="gantt-task-info-content">\n' +
+        '        <div gantt-bind-compile-html="pluginScope.content"></div>\n' +
+        '    </div>\n' +
+        '</div>\n' +
+        '');
+}]);
+
 angular.module('gantt.dependencies.templates', []).run(['$templateCache', function($templateCache) {
 
 }]);
@@ -48186,6 +48483,7 @@ angular.module('gantt.tree.templates', []).run(['$templateCache', function($temp
 }]);
 
 //# sourceMappingURL=angular-gantt-plugins.js.map
+
 (function (root, factory) {
   if (typeof define === 'function' && define.amd) {
     // AMD. Register as an anonymous module unless amdModuleId is set

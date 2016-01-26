@@ -53,7 +53,7 @@ Github: https://github.com/angular-gantt/angular-gantt.git
                         var ifElement = $document[0].createElement('div');
                         angular.element(ifElement).attr('data-ng-if', 'pluginScope.enabled');
 
-                        var contextmenuElement = $document[0].createElement('gantt-contextmenu');
+                        var contextmenuElement = $document[0].createElement('context-menu');
                         if (attrs.templateUrl !== undefined) {
                             angular.element(contextmenuElement).attr('data-template-url', attrs.templateUrl);
                         }

@@ -4,201 +4,148 @@
         // This contextmenu displays more information about a task
 
         return {
-            restrict: 'E',
-            templateUrl: function(tElement, tAttrs) {
-                var templateUrl;
-                if (tAttrs.templateUrl === undefined) {
-                    templateUrl = 'plugins/contextmenus/contextmenu.tmpl.html';
-                } else {
-                    templateUrl = tAttrs.templateUrl;
-                }
-                if (tAttrs.template !== undefined) {
-                    $templateCache.put(templateUrl, tAttrs.template);
-                }
-                return templateUrl;
-            },
+            restrict: 'EA',
             scope: true,
             replace: true,
-            controller: ['$scope', '$element', 'ganttUtils', function($scope, $element, utils) {
-                var bodyElement = angular.element($document[0].body);
-                var parentElement = $scope.task.$element;
-                var showContextMenuPromise;
-                var visible = false;
-                var mouseEnterX;
+            controller: ['$scope', '$element', 'ganttUtils', '$q', function($scope, $element, utils, $q) {
 
-                $scope.getFromLabel = function() {
-                    var taskContextMenus = $scope.task.model.contextmenus;
-                    var rowContextMenus = $scope.task.row.model.contextmenus;
+                var contextMenus = [];
+                var $currentContextMenu = null;
 
-                    if (typeof(taskContextMenus) === 'boolean') {
-                        taskContextMenus = {enabled: taskContextMenus};
-                    }
-
-                    if (typeof(rowContextMenus) === 'boolean') {
-                        rowContextMenus = {enabled: rowContextMenus};
-                    }
-
-                    var dateFormat = utils.firstProperty([taskContextMenus, rowContextMenus], 'dateFormat', $scope.pluginScope.dateFormat);
-                    return $scope.task.model.from.format(dateFormat);
-                };
-
-                $scope.getToLabel = function() {
-                    var taskContextMenus = $scope.task.model.contextmenus;
-                    var rowContextMenus = $scope.task.row.model.contextmenus;
-
-                    if (typeof(taskContextMenus) === 'boolean') {
-                        taskContextMenus = {enabled: taskContextMenus};
-                    }
-
-                    if (typeof(rowContextMenus) === 'boolean') {
-                        rowContextMenus = {enabled: rowContextMenus};
-                    }
-
-                    var dateFormat = utils.firstProperty([taskContextMenus, rowContextMenus], 'dateFormat', $scope.pluginScope.dateFormat);
-                    return $scope.task.model.to.format(dateFormat);
-                };
-
-                var mouseMoveHandler = smartEvent($scope, bodyElement, 'mousemove', debounce(function(e) {
-                    if (!visible) {
-                        mouseEnterX = e.clientX;
-                        displayContextMenu(true, false);
-                    } else {
-                        // check if mouse goes outside the parent
-                        if(
-                            !$scope.taskRect ||
-                            e.clientX < $scope.taskRect.left ||
-                            e.clientX > $scope.taskRect.right ||
-                            e.clientY > $scope.taskRect.bottom ||
-                            e.clientY < $scope.taskRect.top
-                        ) {
-                            displayContextMenu(false, false);
-                        }
-
-                        updateContextMenu(e.clientX);
-                    }
-                }, 5, false));
-
-
-                $scope.task.getContentElement().bind('mousemove', function(evt) {
-                    mouseEnterX = evt.clientX;
-                });
-
-                $scope.task.getContentElement().bind('mouseenter', function(evt) {
-                    mouseEnterX = evt.clientX;
-                    displayContextMenu(true, true);
-                });
-
-                $scope.task.getContentElement().bind('mouseleave', function() {
-                    displayContextMenu(false);
-                });
-
-                if ($scope.pluginScope.api.tasks.on.moveBegin) {
-                    $scope.pluginScope.api.tasks.on.moveBegin($scope, function(task) {
-                        if (task === $scope.task) {
-                            displayContextMenu(true);
-                        }
-                    });
-
-                    $scope.pluginScope.api.tasks.on.moveEnd($scope, function(task) {
-                        if (task === $scope.task) {
-                            displayContextMenu(false);
-                        }
-                    });
-
-                    $scope.pluginScope.api.tasks.on.resizeBegin($scope, function(task) {
-                        if (task === $scope.task) {
-                            displayContextMenu(true);
-                        }
-                    });
-
-                    $scope.pluginScope.api.tasks.on.resizeEnd($scope, function(task) {
-                        if (task === $scope.task) {
-                            displayContextMenu(false);
-                        }
-                    });
-                }
-
-                var displayContextMenu = function(newValue, showDelayed) {
-                    if (showContextMenuPromise) {
-                        $timeout.cancel(showContextMenuPromise);
-                    }
-
-                    var taskContextMenus = $scope.task.model.contextmenus;
-                    var rowContextMenus = $scope.task.row.model.contextmenus;
-
-                    if (typeof(taskContextMenus) === 'boolean') {
-                        taskContextMenus = {enabled: taskContextMenus};
-                    }
-
-                    if (typeof(rowContextMenus) === 'boolean') {
-                        rowContextMenus = {enabled: rowContextMenus};
-                    }
-
-                    var enabled = utils.firstProperty([taskContextMenus, rowContextMenus], 'enabled', $scope.pluginScope.enabled);
-                    if (enabled && !visible && mouseEnterX !== undefined && newValue) {
-                        if (showDelayed) {
-                            showContextMenuPromise = $timeout(function() {
-                                showContextMenu(mouseEnterX);
-                            }, $scope.pluginScope.delay, false);
+                $scope.task.getContentElement().bind('contextmenu', function(evt) {
+                    event.stopPropagation();
+                    $scope.$apply(function () {
+                        event.preventDefault();
+                        if ($scope.pluginScope.menuOptions instanceof Array) {
+                            if ($scope.pluginScope.menuOptions.length === 0) { return; }
+                            renderContextMenu($scope, event, $scope.pluginScope.menuOptions, $scope.task.model);
                         } else {
-                            showContextMenu(mouseEnterX);
+                            throw '"' + $scope.pluginScope.menuOptions + '" not an array';
                         }
-                    } else if (!newValue) {
-                        if (!$scope.task.active) {
-                            hideContextMenu();
-                        }
+                    });
+                });
+                var removeContextMenus = function (level) {
+                    while (contextMenus.length && (!level || contextMenus.length > level)) {
+                        contextMenus.pop().remove();
+                    }
+                    if (contextMenus.length == 0 && $currentContextMenu) {
+                        $currentContextMenu.remove();
                     }
                 };
-
-                var showContextMenu = function(x) {
-                    visible = true;
-                    mouseMoveHandler.bind();
-
-                    $scope.displayed = true;
-
-                    $scope.$evalAsync(function() {
-                        var restoreNgHide;
-                        if ($element.hasClass('ng-hide')) {
-                            $element.removeClass('ng-hide');
-                            restoreNgHide = true;
-                        }
-                        $scope.elementHeight = $element[0].offsetHeight;
-                        if (restoreNgHide) {
-                            $element.addClass('ng-hide');
-                        }
-                        $scope.taskRect = parentElement[0].getBoundingClientRect();
-                        updateContextMenu(x);
-                    });
-                };
-
-                var getViewPortWidth = function() {
-                    var d = $document[0];
-                    return d.documentElement.clientWidth || d.documentElement.getElementById('body')[0].clientWidth;
-                };
-
-                var updateContextMenu = function(x) {
-                    // Check if info is overlapping with view port
-                    if (x + $element[0].offsetWidth > getViewPortWidth()) {
-                        $element.css('left', (x + 20 - $element[0].offsetWidth) + 'px');
-                        $scope.isRightAligned = true;
+                var renderContextMenu = function ($scope, event, options, model, level) {
+                    if (!level) { level = 0; }
+                    if (!$) { var $ = angular.element; }
+                    $(event.currentTarget).addClass('context');
+                    var $contextMenu = $('<div>');
+                    if ($currentContextMenu) {
+                        $contextMenu = $currentContextMenu;
                     } else {
-                        $element.css('left', (x - 20) + 'px');
-                        $scope.isRightAligned = false;
+                        $currentContextMenu = $contextMenu;
                     }
-                };
-
-                var hideContextMenu = function() {
-                    visible = false;
-                    mouseMoveHandler.unbind();
-                    $scope.$evalAsync(function() {
-                        $scope.displayed = false;
+                    $contextMenu.addClass('dropdown clearfix');
+                    var $ul = $('<ul>');
+                    $ul.addClass('dropdown-menu');
+                    $ul.attr({ 'role': 'menu' });
+                    $ul.css({
+                        display: 'block',
+                        position: 'absolute',
+                        left: event.pageX + 'px',
+                        top: event.pageY + 'px',
+                        "z-index": 10000
                     });
+                    angular.forEach(options, function (item, i) {
+                        var $li = $('<li>');
+                        if (item === null) {
+                            $li.addClass('divider');
+                        } else {
+                            var nestedMenu = angular.isArray(item[1])
+                              ? item[1] : angular.isArray(item[2])
+                              ? item[2] : angular.isArray(item[3])
+                              ? item[3] : null;
+                            var $a = $('<a>');
+                            $a.css("padding-right", "8px");
+                            $a.attr({ tabindex: '-1', href: '#' });
+                            var text = typeof item[0] == 'string' ? item[0] : item[0].call($scope, $scope, event, model);
+                            $q.when(text).then(function (text) {
+                                $a.text(text);
+                                if (nestedMenu) {
+                                    $a.css("cursor", "default");
+                                    $a.append($('<strong style="font-family:monospace;font-weight:bold;float:right;">&gt;</strong>'));
+                                }
+                            });
+                            $li.append($a);
+
+                            var enabled = angular.isFunction(item[2]) ? item[2].call($scope, $scope, event, model, text) : true;
+                            if (enabled) {
+                                var openNestedMenu = function ($event) {
+                                    removeContextMenus(level + 1);
+                                    var ev = {
+                                        pageX: event.pageX + $ul[0].offsetWidth - 1,
+                                        pageY: $ul[0].offsetTop + $li[0].offsetTop - 3
+                                    };
+                                    renderContextMenu($scope, ev, nestedMenu, model, level + 1);
+                                }
+                                $li.on('click', function ($event) {
+                                    $event.preventDefault();
+                                    $scope.$apply(function () {
+                                        if (nestedMenu) {
+                                            openNestedMenu($event);
+                                        } else {
+                                            $(event.currentTarget).removeClass('context');
+                                            removeContextMenus();
+                                            item[1].call($scope, $scope, event, model, text);
+                                        }
+                                    });
+                                });
+
+                                $li.on('mouseover', function ($event) {
+                                    $scope.$apply(function () {
+                                        if (nestedMenu) {
+                                            openNestedMenu($event);
+                                        }
+                                    });
+                                });
+                            } else {
+                                $li.on('click', function ($event) {
+                                    $event.preventDefault();
+                                });
+                                $li.addClass('disabled');
+                            }
+                        }
+                        $ul.append($li);
+                    });
+                    $contextMenu.append($ul);
+                    var height = Math.max(
+                        document.body.scrollHeight, document.documentElement.scrollHeight,
+                        document.body.offsetHeight, document.documentElement.offsetHeight,
+                        document.body.clientHeight, document.documentElement.clientHeight
+                    );
+                    $contextMenu.css({
+                        width: '100%',
+                        height: height + 'px',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        zIndex: 9999
+                    });
+                    $(document).find('body').append($contextMenu);
+                    $contextMenu.on("mousedown", function (e) {
+                        if ($(e.target).hasClass('dropdown')) {
+                            $(event.currentTarget).removeClass('context');
+                            removeContextMenus();
+                        }
+                    }).on('contextmenu', function (event) {
+                        $(event.currentTarget).removeClass('context');
+                        event.preventDefault();
+                        removeContextMenus(level);
+                    });
+                    $scope.$on("$destroy", function () {
+                        removeContextMenus();
+                    });
+
+                    contextMenus.push($ul);
                 };
 
-                if ($scope.task.isMoving) {
-                    // Display contextmenu because task has been moved to a new row
-                    displayContextMenu(true, false);
-                }
 
                 $scope.gantt.api.directives.raise.new('ganttContextMenu', $scope, $element);
                 $scope.$on('$destroy', function() {
@@ -208,4 +155,3 @@
         };
     }]);
 }());
-

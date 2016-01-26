@@ -11,6 +11,8 @@ angular.module('angularGanttDemoApp')
     .controller('MainCtrl', ['$scope', '$timeout', '$log', 'ganttUtils', 'GanttObjectModel', 'Sample', 'ganttMouseOffset', 'ganttDebounce', 'moment', function($scope, $timeout, $log, utils, ObjectModel, Sample, mouseOffset, debounce, moment) {
         var objectModel;
         var dataToRemove;
+        $scope.selected = 'None';
+
 
         $scope.options = {
             mode: 'custom',
@@ -54,6 +56,14 @@ angular.module('angularGanttDemoApp')
             groupDisplayMode: 'group',
             filterTask: '',
             filterRow: '',
+            contextMenuOptions:[
+              ['Favorite Color', function ($itemScope, $event, taskModel) {
+                    console.log(taskModel);
+              }],
+                ['Alert some value', function ($itemScope, $event, taskModel) {
+                    alert('Alert some value');
+              }]
+            ],
             timeFrames: {
                 'day': {
                     start: moment('8:00', 'HH:mm'),
@@ -182,26 +192,26 @@ angular.module('angularGanttDemoApp')
                     api.directives.on.new($scope, function(directiveName, directiveScope, element) {
                         if (directiveName === 'ganttTask') {
                             element.bind('click', function(event) {
-                                event.stopPropagation();
+                                // event.stopPropagation();
                                 logTaskEvent('task-click', directiveScope.task);
                             });
                             element.bind('mousedown touchstart', function(event) {
-                                event.stopPropagation();
+                                // event.stopPropagation();
                                 $scope.live.row = directiveScope.task.row.model;
                                 if (directiveScope.task.originalModel !== undefined) {
                                     $scope.live.task = directiveScope.task.originalModel;
                                 } else {
                                     $scope.live.task = directiveScope.task.model;
                                 }
-                                $scope.$digest();
+                                // $scope.$digest();
                             });
                         } else if (directiveName === 'ganttRow') {
                             element.bind('click', function(event) {
-                                event.stopPropagation();
+                                // event.stopPropagation();
                                 logRowEvent('row-click', directiveScope.row);
                             });
                             element.bind('mousedown touchstart', function(event) {
-                                event.stopPropagation();
+                                // event.stopPropagation();
                                 $scope.live.row = directiveScope.row.model;
                                 $scope.$digest();
                             });
