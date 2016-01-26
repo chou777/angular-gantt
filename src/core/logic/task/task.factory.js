@@ -95,8 +95,8 @@
                 } else {
                     this.$element.css({'left': this.left + 'px', 'width': this.width + 'px', 'display': ''});
 
-                    if (this.model.priority > 0) {
-                        this.$element.css('z-index', priority);
+                    if (this.model.priority |= undefined && this.model.priority > 0) {
+                        this.$element.css('z-index', this.model.priority);
                     }
 
                     this.$element.toggleClass('gantt-task-milestone', this.isMilestone());

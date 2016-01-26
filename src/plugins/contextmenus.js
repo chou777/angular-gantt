@@ -40,22 +40,22 @@
 
                 api.directives.on.new(scope, function(directiveName, taskScope, taskElement) {
                     if (directiveName === 'ganttTask') {
-                        var tooltipScope = taskScope.$new();
+                        var contextmenuScope = taskScope.$new();
 
-                        tooltipScope.pluginScope = scope;
+                        contextmenuScope.pluginScope = scope;
                         var ifElement = $document[0].createElement('div');
                         angular.element(ifElement).attr('data-ng-if', 'pluginScope.enabled');
 
-                        var tooltipElement = $document[0].createElement('gantt-tooltip');
+                        var contextmenuElement = $document[0].createElement('gantt-contextmenu');
                         if (attrs.templateUrl !== undefined) {
-                            angular.element(tooltipElement).attr('data-template-url', attrs.templateUrl);
+                            angular.element(contextmenuElement).attr('data-template-url', attrs.templateUrl);
                         }
                         if (attrs.template !== undefined) {
-                            angular.element(tooltipElement).attr('data-template', attrs.template);
+                            angular.element(contextmenuElement).attr('data-template', attrs.template);
                         }
 
-                        angular.element(ifElement).append(tooltipElement);
-                        taskElement.append($compile(ifElement)(tooltipScope));
+                        angular.element(ifElement).append(contextmenuElement);
+                        taskElement.append($compile(ifElement)(contextmenuScope));
                     }
                 });
             }

@@ -14,6 +14,7 @@ angular.module('angularGanttDemoApp', [
     'gantt.movable',
     'gantt.drawtask',
     'gantt.tooltips',
+    'gantt.contextmenus',
     'gantt.bounds',
     'gantt.progress',
     'gantt.table',
