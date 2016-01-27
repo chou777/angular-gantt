@@ -226,7 +226,6 @@ Github: https://github.com/angular-gantt/angular-gantt.git
                 var showTooltip = function(x) {
                     visible = true;
                     mouseMoveHandler.bind();
-
                     $scope.displayed = true;
 
                     $scope.$evalAsync(function() {

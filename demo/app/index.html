@@ -273,7 +273,11 @@
                                         </gantt-table>
                                         <gantt-groups enabled="options.groupDisplayMode === 'group' || options.groupDisplayMode === 'overview' || options.groupDisplayMode === 'promote'" display="options.groupDisplayMode"></gantt-groups>
                                         <gantt-tooltips></gantt-tooltips>
-                                        <gantt-context-menus menu-options="options.contextMenuOptions"></gantt-context-menus>
+                                        <gantt-context-menus
+                                            enabled="options.contextMenuEnabled"
+                                            task-options="options.contextMenuOptions.task">
+
+                                        </gantt-context-menus>
                                         <gantt-bounds></gantt-bounds>
                                         <gantt-progress></gantt-progress>
                                         <gantt-sortable></gantt-sortable>
@@ -357,7 +361,6 @@
 <script src="bower_components/css-element-queries/src/ElementQueries.js"></script>
 <script src="bower_components/css-element-queries/src/ResizeSensor.js"></script>
 <script src="bower_components/jsPlumb/dist/js/jsPlumb-2.0.6.js"></script>
-<script src="bower_components/angular-bootstrap-contextmenu/contextMenu.js"></script>
 <!-- endbower -->
 <!-- endbuild -->
 

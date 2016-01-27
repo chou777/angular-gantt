@@ -1,34 +1,37 @@
 (function() {
     'use strict';
-    angular.module('gantt.contextmenus').directive('ganttContextMenu', ['$log','$timeout', '$compile', '$document', '$templateCache', 'ganttDebounce', 'ganttSmartEvent', function($log, $timeout, $compile, $document, $templateCache, debounce, smartEvent) {
-        // This contextmenu displays more information about a task
+    angular.module('gantt.contextmenus').directive('ganttContextMenu', ['$log','$timeout', function($log, $timeout) {
+        // This contextmenu displays more information about a task || rowLabel
 
         return {
             restrict: 'EA',
             scope: true,
             replace: true,
             controller: ['$scope', '$element', 'ganttUtils', '$q', function($scope, $element, utils, $q) {
-
                 var contextMenus = [];
                 var $currentContextMenu = null;
+                var directiveName = $scope.pluginScope.directiveName;
 
-                $scope.task.getContentElement().bind('contextmenu', function(evt) {
-                    event.stopPropagation();
-                    $scope.$apply(function () {
-                        event.preventDefault();
-                        if ($scope.pluginScope.menuOptions instanceof Array) {
-                            if ($scope.pluginScope.menuOptions.length === 0) { return; }
-                            renderContextMenu($scope, event, $scope.pluginScope.menuOptions, $scope.task.model);
-                        } else {
-                            throw '"' + $scope.pluginScope.menuOptions + '" not an array';
-                        }
+                if (directiveName === 'ganttTask') {
+                    $scope.task.getContentElement().bind('contextmenu', function(evt) {
+                        event.stopPropagation();
+                        $scope.$apply(function () {
+                            event.preventDefault();
+                            if ($scope.pluginScope.menuList instanceof Array) {
+                                if ($scope.pluginScope.menuList.length === 0) { return; }
+                                renderContextMenu($scope, event, $scope.pluginScope.menuList, $scope.task.model);
+                            } else {
+                                throw '"' + $scope.pluginScope.menuList + '" not an array';
+                            }
+                        });
                     });
-                });
+                }
+
                 var removeContextMenus = function (level) {
                     while (contextMenus.length && (!level || contextMenus.length > level)) {
                         contextMenus.pop().remove();
                     }
-                    if (contextMenus.length == 0 && $currentContextMenu) {
+                    if (contextMenus.length === 0 && $currentContextMenu) {
                         $currentContextMenu.remove();
                     }
                 };
@@ -151,6 +154,8 @@
                 $scope.$on('$destroy', function() {
                     $scope.gantt.api.directives.raise.destroy('ganttContextMenu', $scope, $element);
                 });
+
+
             }]
         };
     }]);

@@ -153,7 +153,6 @@
                 var showTooltip = function(x) {
                     visible = true;
                     mouseMoveHandler.bind();
-
                     $scope.displayed = true;
 
                     $scope.$evalAsync(function() {

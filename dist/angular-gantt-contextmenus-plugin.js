@@ -7,34 +7,28 @@ Github: https://github.com/angular-gantt/angular-gantt.git
 */
 (function(){
     'use strict';
-    angular.module('gantt.contextmenus', ['gantt', 'gantt.contextmenus.templates']).directive('ganttContextMenus', ['$compile', '$document', function($compile, $document) {
+    angular.module('gantt.contextmenus', ['gantt']).directive('ganttContextMenus', ['$compile', '$document', function($compile, $document) {
         return {
             restrict: 'E',
             require: '^gantt',
             scope: {
                 enabled: '=?',
-                menuOptions: '=?'
+                taskOptions: '=?',
             },
             link: function(scope, element, attrs, ganttCtrl) {
                 var api = ganttCtrl.gantt.api;
 
-                // Load options from global options attribute.
-                if (scope.options && typeof(scope.options.contextmenus) === 'object') {
-                    for (var option in scope.options.contextmenus) {
-                        scope[option] = scope.options[option];
-                    }
-                }
-
+                // Default true
                 if (scope.enabled === undefined) {
                     scope.enabled = true;
                 }
-
                 scope.api = api;
 
-                api.directives.on.new(scope, function(directiveName, taskScope, taskElement) {
-                    if (directiveName === 'ganttTask') {
-
-                        var contextmenuScope = taskScope.$new();
+                api.directives.on.new(scope, function(directiveName, directiveScope, element) {
+                    if (directiveName === 'ganttTask' && scope.taskOptions != undefined) {
+                        scope.menuList = scope.taskOptions;
+                        scope.directiveName = directiveName;
+                        var contextmenuScope = directiveScope.$new();
                         contextmenuScope.pluginScope = scope;
 
                         var ifElement = $document[0].createElement('div');
@@ -43,7 +37,7 @@ Github: https://github.com/angular-gantt/angular-gantt.git
                         var contextmenuElement = $document[0].createElement('gantt-context-menu');
 
                         angular.element(ifElement).append(contextmenuElement);
-                        taskElement.append($compile(ifElement)(contextmenuScope));
+                        element.append($compile(ifElement)(contextmenuScope));
                     }
                 });
             }
@@ -53,35 +47,38 @@ Github: https://github.com/angular-gantt/angular-gantt.git
 
 (function() {
     'use strict';
-    angular.module('gantt.contextmenus').directive('ganttContextMenu', ['$log','$timeout', '$compile', '$document', '$templateCache', 'ganttDebounce', 'ganttSmartEvent', function($log, $timeout, $compile, $document, $templateCache, debounce, smartEvent) {
-        // This contextmenu displays more information about a task
+    angular.module('gantt.contextmenus').directive('ganttContextMenu', ['$log','$timeout', function($log, $timeout) {
+        // This contextmenu displays more information about a task || rowLabel
 
         return {
             restrict: 'EA',
             scope: true,
             replace: true,
             controller: ['$scope', '$element', 'ganttUtils', '$q', function($scope, $element, utils, $q) {
-
                 var contextMenus = [];
                 var $currentContextMenu = null;
+                var directiveName = $scope.pluginScope.directiveName;
 
-                $scope.task.getContentElement().bind('contextmenu', function(evt) {
-                    event.stopPropagation();
-                    $scope.$apply(function () {
-                        event.preventDefault();
-                        if ($scope.pluginScope.menuOptions instanceof Array) {
-                            if ($scope.pluginScope.menuOptions.length === 0) { return; }
-                            renderContextMenu($scope, event, $scope.pluginScope.menuOptions, $scope.task.model);
-                        } else {
-                            throw '"' + $scope.pluginScope.menuOptions + '" not an array';
-                        }
+                if (directiveName === 'ganttTask') {
+                    $scope.task.getContentElement().bind('contextmenu', function(evt) {
+                        event.stopPropagation();
+                        $scope.$apply(function () {
+                            event.preventDefault();
+                            if ($scope.pluginScope.menuList instanceof Array) {
+                                if ($scope.pluginScope.menuList.length === 0) { return; }
+                                renderContextMenu($scope, event, $scope.pluginScope.menuList, $scope.task.model);
+                            } else {
+                                throw '"' + $scope.pluginScope.menuList + '" not an array';
+                            }
+                        });
                     });
-                });
+                }
+
                 var removeContextMenus = function (level) {
                     while (contextMenus.length && (!level || contextMenus.length > level)) {
                         contextMenus.pop().remove();
                     }
-                    if (contextMenus.length == 0 && $currentContextMenu) {
+                    if (contextMenus.length === 0 && $currentContextMenu) {
                         $currentContextMenu.remove();
                     }
                 };
@@ -204,6 +201,8 @@ Github: https://github.com/angular-gantt/angular-gantt.git
                 $scope.$on('$destroy', function() {
                     $scope.gantt.api.directives.raise.destroy('ganttContextMenu', $scope, $element);
                 });
+
+
             }]
         };
     }]);

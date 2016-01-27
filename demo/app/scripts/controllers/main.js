@@ -56,14 +56,35 @@ angular.module('angularGanttDemoApp')
             groupDisplayMode: 'group',
             filterTask: '',
             filterRow: '',
-            contextMenuOptions:[
-              ['Favorite Color', function ($itemScope, $event, taskModel) {
-                    console.log(taskModel);
-              }],
-                ['Alert some value', function ($itemScope, $event, taskModel) {
-                    alert('Alert some value');
-              }]
-            ],
+            contextMenuEnabled: true,
+            contextMenuOptions:{
+                'task':
+                    [['task modal', function ($itemScope, $event, model) {
+                        console.log(model);
+                    }],
+                    ['Alert some value', function ($itemScope, $event, model) {
+                        alert('Alert some value');
+                    }],
+                    ['Reload Data', function ($itemScope, $event, model) {
+                        $scope.reload();
+                    }],
+                    ['Clear Data', function ($itemScope, $event, model) {
+                        $scope.clear();
+                    }]],
+                'rowLabel':
+                    [['row model', function ($itemScope, $event, model) {
+                        console.log(model);
+                    }],
+                    ['Alert some value', function ($itemScope, $event, model) {
+                        alert('Alert some value');
+                    }],
+                    ['Reload Data', function ($itemScope, $event, model) {
+                        $scope.reload();
+                    }],
+                    ['Clear Data', function ($itemScope, $event, model) {
+                        $scope.clear();
+                    }]],
+            },
             timeFrames: {
                 'day': {
                     start: moment('8:00', 'HH:mm'),
@@ -165,24 +186,24 @@ angular.module('angularGanttDemoApp')
                     api.rows.on.filter($scope, logRowsFilterEvent);
                     api.tasks.on.filter($scope, logTasksFilterEvent);
 
-                    api.data.on.change($scope, function(newData) {
-                        if (dataToRemove === undefined) {
-                            dataToRemove = [
-                                {'id': newData.data[2].id}, // Remove Kickoff row
-                                {
-                                    'id': newData.data[0].id, 'tasks': [
-                                    {'id': newData.data[0].tasks[0].id},
-                                    {'id': newData.data[0].tasks[3].id}
-                                ]
-                                }, // Remove some Milestones
-                                {
-                                    'id': newData.data[6].id, 'tasks': [
-                                    {'id': newData.data[6].tasks[0].id}
-                                ]
-                                } // Remove order basket from Sprint 2
-                            ];
-                        }
-                    });
+                    // api.data.on.change($scope, function(newData) {
+                    //     if (dataToRemove === undefined) {
+                    //         dataToRemove = [
+                    //             {'id': newData.data[2].id}, // Remove Kickoff row
+                    //             {
+                    //                 'id': newData.data[0].id, 'tasks': [
+                    //                 {'id': newData.data[0].tasks[0].id},
+                    //                 {'id': newData.data[0].tasks[3].id}
+                    //             ]
+                    //             }, // Remove some Milestones
+                    //             {
+                    //                 'id': newData.data[6].id, 'tasks': [
+                    //                 {'id': newData.data[6].tasks[0].id}
+                    //             ]
+                    //             } // Remove order basket from Sprint 2
+                    //         ];
+                    //     }
+                    // });
 
                     // When gantt is ready, load data.
                     // `data` attribute could have been used too.
