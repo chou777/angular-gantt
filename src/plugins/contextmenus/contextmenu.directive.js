@@ -10,23 +10,40 @@
             controller: ['$scope', '$element', 'ganttUtils', '$q', function($scope, $element, utils, $q) {
                 var contextMenus = [];
                 var $currentContextMenu = null;
-                var directiveName = $scope.pluginScope.directiveName;
+                var directiveName = $scope.directiveName;
+                var madel = null;
+                var menuList = $scope.menuList;
 
                 if (directiveName === 'ganttTask') {
+                    madel = $scope.task.model;
                     $scope.task.getContentElement().bind('contextmenu', function(evt) {
                         event.stopPropagation();
                         $scope.$apply(function () {
                             event.preventDefault();
-                            if ($scope.pluginScope.menuList instanceof Array) {
-                                if ($scope.pluginScope.menuList.length === 0) { return; }
-                                renderContextMenu($scope, event, $scope.pluginScope.menuList, $scope.task.model);
+                            if (menuList instanceof Array) {
+                                if (menuList.length === 0) { return; }
+                                renderContextMenu($scope, event, menuList, madel);
                             } else {
-                                throw '"' + $scope.pluginScope.menuList + '" not an array';
+                                throw '"' + menuList + '" not an array';
                             }
                         });
                     });
                 }
-
+                if (directiveName === 'ganttRowLabel') {
+                    madel = $scope.row.model;
+                    $element.parent().parent(".context-menu-enabled").bind('contextmenu', function(event) {
+                        event.stopPropagation();
+                        $scope.$apply(function () {
+                            event.preventDefault();
+                            if (menuList instanceof Array) {
+                                if (menuList.length === 0) { return; }
+                                renderContextMenu($scope, event, menuList, madel);
+                            } else {
+                                throw '"' + menuList + '" not an array';
+                            }
+                        });
+                    });
+                }
                 var removeContextMenus = function (level) {
                     while (contextMenus.length && (!level || contextMenus.length > level)) {
                         contextMenus.pop().remove();
