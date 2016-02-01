@@ -20,7 +20,7 @@
                 scope.api = api;
 
                 api.directives.on.new(scope, function(directiveName, directiveScope, element) {
-                    if (directiveName === 'ganttRowLabel' && scope.rowLabelOptions != undefined) {
+                    if (directiveName === 'ganttRowLabel' && scope.rowLabelOptions !== undefined) {
                         if (element.hasClass('gantt-row-label') && element.hasClass('gantt-row-height')) {
                             if (!element.hasClass('context-menu-enabled')){
                                 element.addClass('context-menu-enabled');
@@ -37,7 +37,7 @@
                         }
                     }
 
-                    if (directiveName === 'ganttTask' && scope.taskOptions != undefined) {
+                    if (directiveName === 'ganttTask' && scope.taskOptions !== undefined) {
                         if (!element.hasClass('context-menu-enabled')){
                             element.addClass('context-menu-enabled');
                             var contextmenuScope = directiveScope.$new();

@@ -1,8 +1,7 @@
 (function() {
     'use strict';
-    angular.module('gantt.contextmenus').directive('ganttContextMenu', ['$log','$timeout', function($log, $timeout) {
+    angular.module('gantt.contextmenus').directive('ganttContextMenu', ['$timeout', function($timeout) {
         // This contextmenu displays more information about a task || rowLabel
-
         return {
             restrict: 'EA',
             scope: true,
@@ -16,7 +15,7 @@
 
                 if (directiveName === 'ganttTask') {
                     madel = $scope.task.model;
-                    $scope.task.getContentElement().bind('contextmenu', function(evt) {
+                    $scope.task.getContentElement().bind('contextmenu', function(event) {
                         event.stopPropagation();
                         $scope.$apply(function () {
                             event.preventDefault();
@@ -29,9 +28,10 @@
                         });
                     });
                 }
+
                 if (directiveName === 'ganttRowLabel') {
                     madel = $scope.row.model;
-                    $element.parent().parent(".context-menu-enabled").bind('contextmenu', function(event) {
+                    $element.parent().parent('.context-menu-enabled').bind('contextmenu', function(event) {
                         event.stopPropagation();
                         $scope.$apply(function () {
                             event.preventDefault();
@@ -44,6 +44,7 @@
                         });
                     });
                 }
+
                 var removeContextMenus = function (level) {
                     while (contextMenus.length && (!level || contextMenus.length > level)) {
                         contextMenus.pop().remove();
@@ -52,6 +53,7 @@
                         $currentContextMenu.remove();
                     }
                 };
+
                 var renderContextMenu = function ($scope, event, options, model, level) {
                     if (!level) { level = 0; }
                     if (!$) { var $ = angular.element; }
@@ -73,19 +75,17 @@
                         top: event.pageY + 'px',
                         "z-index": 10000
                     });
+
                     angular.forEach(options, function (item, i) {
                         var $li = $('<li>');
                         if (item === null) {
                             $li.addClass('divider');
                         } else {
-                            var nestedMenu = angular.isArray(item[1])
-                              ? item[1] : angular.isArray(item[2])
-                              ? item[2] : angular.isArray(item[3])
-                              ? item[3] : null;
+                            var nestedMenu = angular.isArray(item[1]) ? item[1] : angular.isArray(item[2])? item[2] : angular.isArray(item[3]) ? item[3] : null;
                             var $a = $('<a>');
                             $a.css("padding-right", "8px");
                             $a.attr({ tabindex: '-1', href: '#' });
-                            var text = typeof item[0] == 'string' ? item[0] : item[0].call($scope, $scope, event, model);
+                            var text = typeof item[0] === 'string' ? item[0] : item[0].call($scope, $scope, event, model);
                             $q.when(text).then(function (text) {
                                 $a.text(text);
                                 if (nestedMenu) {
@@ -134,12 +134,14 @@
                         }
                         $ul.append($li);
                     });
+
                     $contextMenu.append($ul);
                     var height = Math.max(
                         document.body.scrollHeight, document.documentElement.scrollHeight,
                         document.body.offsetHeight, document.documentElement.offsetHeight,
                         document.body.clientHeight, document.documentElement.clientHeight
                     );
+
                     $contextMenu.css({
                         width: '100%',
                         height: height + 'px',
@@ -159,7 +161,7 @@
                         event.preventDefault();
                         removeContextMenus(level);
                     });
-                    $scope.$on("$destroy", function () {
+                    $scope.$on('$destroy', function () {
                         removeContextMenus();
                     });
 
