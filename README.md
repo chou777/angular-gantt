@@ -1,4 +1,4 @@
-# angular-gantt 
+# angular-gantt Contestmenu
 [![npm version](http://img.shields.io/npm/v/angular-gantt.svg?style=flat)](https://npmjs.org/package/angular-gantt) 
 [![Build status](http://img.shields.io/travis/angular-gantt/angular-gantt.svg?style=flat)](https://travis-ci.org/angular-gantt/angular-gantt)
 [![Coverage Status](https://img.shields.io/coveralls/angular-gantt/angular-gantt.svg?style=flat)](https://coveralls.io/r/angular-gantt/angular-gantt)
@@ -53,7 +53,7 @@ $scope.options.contextMenuOptions = {
     row-label-options="options.contextMenuOptions.rowLabel">
   </gantt-context-menus>
 </div> 
-
+```
 ## Gantt chart component for AngularJS
 
 [angular-gantt](http://www.angular-gantt.com) provides a gantt chart component to your [AngularJS](https://angularjs.org/) application.
