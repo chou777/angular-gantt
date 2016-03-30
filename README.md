@@ -6,6 +6,54 @@
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/angular-gantt/angular-gantt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [HuBoard](https://huboard.com/angular-gantt/angular-gantt)
 
+## Contextmenu plugin for Angular Gantt
+
+##### Setting Options
+```
+$scope.options.contextMenuEnabled = true;
+$scope.options.contextMenuOptions = {
+    'task':
+        [['task modal', function ($itemScope, $event, model) {
+            console.log(model);
+        }],
+        ['Alert some value', function ($itemScope, $event, model) {
+            alert('Alert some value');
+        },function(itemScoep, $event, model) {
+            //Disable button
+            return false;
+        }],
+        ['Reload Data', function ($itemScope, $event, model) {
+            $scope.reload();
+        }],
+        ['Clear Data', function ($itemScope, $event, model) {
+            $scope.clear();
+        }]],
+    'rowLabel':
+        [['row model', function ($itemScope, $event, model) {
+            console.log(model);
+        }],
+        ['Alert some value', function ($itemScope, $event, model) {
+            alert('Alert some value');
+        }],
+        ['Reload Data', function ($itemScope, $event, model) {
+            $scope.reload();
+        }],
+        ['Clear Data', function ($itemScope, $event, model) {
+            $scope.clear();
+        }]],
+},
+```
+            
+##### HTML
+```
+<div gantt>
+  <gantt-context-menus
+    enabled="options.contextMenuEnabled"
+    task-options="options.contextMenuOptions.task"
+    row-label-options="options.contextMenuOptions.rowLabel">
+  </gantt-context-menus>
+</div> 
+
 ## Gantt chart component for AngularJS
 
 [angular-gantt](http://www.angular-gantt.com) provides a gantt chart component to your [AngularJS](https://angularjs.org/) application.
